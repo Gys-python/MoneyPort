@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  fastapi:
+    build: ./fast_api
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+    depends_on:
+      - postgres
+
+  mp_admin:
+    build: ./mp_admin
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: ${DEBUG}
+    depends_on:
+      - postgres
+
+  mp_parser:
+    build: ./mp_parser
+    depends_on:
+      - postgres
+
+  nginx:
+      build: ./nginx
+      ports:
+        - "80:80"
+      depends_on:
+        - fastapi
+        - mp_admin
+      restart: always
+
+volumes:
+  postgres_data:
